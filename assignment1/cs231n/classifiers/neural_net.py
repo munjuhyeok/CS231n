@@ -79,8 +79,10 @@ class TwoLayerNet(object):
         # shape (N, C).                                                             #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        pass
+        
+        # layer1 =X.dot(W1)+b1
+        layer1 = np.maximum(X.dot(W1)+b1,0)
+        scores = layer1.dot(W2)+b2
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -98,7 +100,15 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        num_train = X.shape[0]
+
+        softmaxes = np.exp(scores)
+        
+        softmaxes /= softmaxes.sum(axis=1).reshape(num_train,1)
+        
+        loss = -np.sum(np.log(softmaxes[np.arange(num_train),y]))/num_train
+
+        loss += reg*(np.sum(W1*W1)+np.sum(W2*W2))
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -110,8 +120,39 @@ class TwoLayerNet(object):
         # grads['W1'] should store the gradient on W1, and be a matrix of same size #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        
+        dW2 = np.zeros_like(W2)
+        db2 = np.zeros_like(b2)
+        dW1 = np.zeros_like(W1)
+        db1 = np.zeros_like(b1)
+        dlayer1 = np.zeros_like(layer1)
 
-        pass
+        softmaxes = softmaxes.copy()
+        softmaxes[np.arange(num_train),y] -= 1
+        softmaxes /= num_train
+
+        dW2 += np.matmul(layer1.T,softmaxes)
+        
+        db2 += np.sum(softmaxes,axis=0)
+
+
+        dlayer1 += np.matmul(softmaxes,W2.T)
+        dlayer1[layer1<=0] = 0
+
+        # label = layer1.copy()
+        # label[layer1>0] = 1
+
+        dW1 = np.matmul(X.T,dlayer1)
+
+        db1 = np.sum(dlayer1,axis=0)
+
+        dW2 += 2*reg*W2
+        dW1 += 2*reg*W1
+
+        grads['W2'] = dW2
+        grads['b2'] = db2
+        grads['W1'] = dW1
+        grads['b1'] = db1
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -156,7 +197,9 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            batch_indices = np.random.choice(num_train, batch_size)
+            X_batch = X[batch_indices]
+            y_batch = y[batch_indices]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -172,7 +215,10 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            self.params['W1'] -= learning_rate * grads['W1']
+            self.params['b1'] -= learning_rate * grads['b1']
+            self.params['W2'] -= learning_rate * grads['W2']
+            self.params['b2'] -= learning_rate * grads['b2']
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -218,7 +264,14 @@ class TwoLayerNet(object):
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        num_train = X.shape[0]
+
+        layer1 = X.dot(self.params['W1'])+self.params['b1']
+        scores = np.maximum(layer1,0).dot(self.params['W2'])+self.params['b2']
+        softmaxes = np.exp(scores)
+        softmaxes /= softmaxes.sum(axis=1).reshape(num_train,1)
+
+        y_pred = np.argmax(softmaxes,axis=1)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
