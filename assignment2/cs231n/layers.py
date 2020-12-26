@@ -28,7 +28,9 @@ def affine_forward(x, w, b):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N = x.shape[0]
+    x_reshape = np.reshape(x,(N,-1))
+    out = x_reshape.dot(w)+b
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -61,7 +63,11 @@ def affine_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N = x.shape[0]
+    x_reshape = np.reshape(x,(N,-1))
+    dx = dout.dot(w.T).reshape(x.shape)
+    dw = x_reshape.T.dot(dout)
+    db = dout.sum(axis = 0)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -87,7 +93,7 @@ def relu_forward(x):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    out = np.maximum(x,0)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -114,7 +120,8 @@ def relu_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    dx = dout.copy()
+    dx[x<=0] = 0
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -194,7 +201,17 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        sample_mean = np.mean(x, axis = 0)
+        sample_var = np.var(x, axis = 0)
+        sample_std = np.sqrt(sample_var+eps)
+
+        y = (x-sample_mean)/sample_std
+        out = gamma*y + beta
+
+        running_mean = momentum * running_mean + (1 - momentum) * sample_mean
+        running_var = momentum * running_var + (1 - momentum) * sample_var
+
+        cache = {"x": x, "mean" : sample_mean, "var" : sample_var, "std":sample_std, "y" : y, "gamma" : gamma, "beta" : beta, "eps" : eps}
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -208,8 +225,9 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # Store the result in the out variable.                               #
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        pass
+        
+        out = (x-running_mean)/np.sqrt(running_var + eps)
+        out = gamma*out + beta
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -250,8 +268,26 @@ def batchnorm_backward(dout, cache):
     # might prove to be helpful.                                              #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    
+    x = cache["x"]
+    y = cache["y"]
+    mean = cache["mean"]
+    var = cache["var"]
+    std = cache["std"]
+    gamma = cache["gamma"]
+    beta = cache["beta"]
+    eps = cache["eps"]
 
-    pass
+    N = x.shape[0]
+    
+    dy = dout * gamma
+    dstd = np.sum(dy * -y/std, axis=0)
+    dvar = dstd * 0.5/std
+    dmean = dvar * 0 + np.sum(dy * (-1/std), axis=0)
+    dx = dy/std + dvar * 2 * (x - mean)/N + dmean * 1/N
+
+    dgamma = (y * dout).sum(axis = 0)
+    dbeta = dout.sum(axis = 0)    
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -285,8 +321,24 @@ def batchnorm_backward_alt(dout, cache):
     # single statement; our implementation fits on a single 80-character line.#
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    
+    x = cache["x"]
+    y = cache["y"]
+    mean = cache["mean"]
+    var = cache["var"]
+    std = cache["std"]
+    gamma = cache["gamma"]
+    beta = cache["beta"]
+    eps = cache["eps"]
 
-    pass
+    N = x.shape[0]
+    
+    dy = dout * gamma
+    
+    dx = (dy - np.mean(dy,axis=0))/std - np.mean(dy*y,axis=0)*y/std
+
+    dgamma = (y * dout).sum(axis = 0)
+    dbeta = dout.sum(axis = 0)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
