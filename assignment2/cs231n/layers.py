@@ -384,7 +384,14 @@ def layernorm_forward(x, gamma, beta, ln_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    mean = np.mean(x, axis=1).reshape(-1,1)
+    var = np.var(x, axis=1).reshape(-1,1)
+    std = np.sqrt(var + eps)
+    y = (x-mean)/std
+    out = gamma*y + beta
+
+    cache = {"x": x, "mean" : mean, "var" : var, "std":std, "y" : y, "gamma" : gamma, "beta" : beta, "eps" : eps}
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -419,7 +426,27 @@ def layernorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    
+    x = cache["x"]
+    y = cache["y"]
+    mean = cache["mean"]
+    var = cache["var"]
+    std = cache["std"]
+    gamma = cache["gamma"]
+    beta = cache["beta"]
+    eps = cache["eps"]
+
+    N = x.shape[0]
+    D = x.shape[1]
+    
+    dy = dout * gamma
+    dstd = np.sum(dy * -y/std, axis=1).reshape(std.shape)
+    dvar = dstd * 0.5/std
+    dmean = dvar * 0 + np.sum(dy * (-1/std), axis=1).reshape(std.shape)
+    dx = dy/std + dvar * 2 * (x - mean)/D + dmean * 1/D
+
+    dgamma = (y * dout).sum(axis = 0)
+    dbeta = dout.sum(axis = 0)    
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
