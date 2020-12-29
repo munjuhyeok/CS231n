@@ -160,10 +160,17 @@ def adam(w, dw, config=None):
     beta1 = config['beta1']
     beta2 = config['beta2']
 
+    config['t'] += 1
+    t = config['t']
+
     config['m'] = beta1 * config['m'] + (1 - beta1) * dw
     config['v'] = beta2 * config['v'] + (1 - beta2) * dw*dw
 
-    next_w = w - config['learning_rate'] * config['m'] / (np.sqrt(config['v']) + config['epsilon'])
+    m_unbias = config['m'] / (1 - beta1**t)
+    v_unbias = config['v'] / (1 - beta2**t)
+
+    next_w = w - config['learning_rate'] * m_unbias / (np.sqrt(v_unbias) + config['epsilon'])
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
