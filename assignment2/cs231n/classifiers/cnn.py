@@ -63,7 +63,14 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        C,H,W = input_dim
+        self.params["W1"] = weight_scale * np.random.randn(num_filters,C,filter_size,filter_size)
+        self.params["b1"] = np.zeros(num_filters)
+        H1, W1 = int(H/2), int(W/2) # after max pool
+        self.params["W2"] = weight_scale * np.random.randn(num_filters*H1*W1, hidden_dim)
+        self.params["b2"] = np.zeros(hidden_dim)
+        self.params["W3"] = weight_scale * np.random.randn(hidden_dim, num_classes)
+        self.params["b3"] = np.zeros(num_classes)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -102,7 +109,10 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        layer1, cache1 = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
+        layer2, cache2 = affine_relu_forward(layer1, W2, b2)
+        layer3, cache3 = affine_forward(layer2, W3, b3) 
+        scores = layer3
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -125,7 +135,20 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        reg = self.reg
+        loss, dlayer3 = softmax_loss(layer3,y)
+        loss += 0.5*reg*(np.sum(W1*W1)+np.sum(W2*W2)+np.sum(W3*W3))
+
+        dlayer2, dW3, db3 = affine_backward(dlayer3,cache3)
+        dlayer1, dW2, db2 = affine_relu_backward(dlayer2, cache2)
+        _, dW1, db1 = conv_relu_pool_backward(dlayer1, cache1)
+
+        grads['W1'] = dW1 + reg*W1
+        grads['b1'] = db1
+        grads['W2'] = dW2 + reg*W2
+        grads['b2'] = db2
+        grads['W3'] = dW3 + reg*W3
+        grads['b3'] = db3
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
