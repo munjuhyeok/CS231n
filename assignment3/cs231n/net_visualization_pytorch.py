@@ -34,7 +34,11 @@ def compute_saliency_maps(X, y, model):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    scores = model(X)
+    loss = torch.nn.functional.cross_entropy(scores, y)
+    loss.backward()
+    saliency = X.grad.abs().max(1)[0]
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -75,8 +79,20 @@ def make_fooling_image(X, target_y, model):
     # You can print your progress over iterations to check your algorithm.       #
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    
+    while(True):
+        scores = model(X_fooling)
 
-    pass
+        score = scores[:,target_y]
+        score.backward()
+        g = X_fooling.grad
+        with torch.no_grad():
+            X_fooling += learning_rate*g/g.norm(2)
+        
+        X_fooling.grad.zero_()
+
+        if(scores.max(1)[1][0] == target_y):
+            break
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -93,8 +109,19 @@ def class_visualization_update_step(img, model, target_y, l2_reg, learning_rate)
     # Be very careful about the signs of elements in your code.            #
     ########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+  
+    scores = model(img)
 
-    pass
+    score = scores[:,target_y]
+    
+    value = score - l2_reg*img.norm(2)
+    value.backward()
+
+    g = img.grad
+    with torch.no_grad():
+        img += learning_rate*g/g.norm(2)
+    
+    img.grad.zero_()
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ########################################################################
