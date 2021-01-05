@@ -153,12 +153,23 @@ class CaptioningRNN(object):
 
         h0, cache_h0 = affine_forward(features, W_proj, b_proj)
         x, cache_x = word_embedding_forward(captions_in, W_embed)
-        h, cache_h = rnn_forward(x, h0, Wx, Wh, b)
+        if(self.cell_type == 'rnn'):
+          h, cache_h = rnn_forward(x, h0, Wx, Wh, b)
+        elif (self.cell_type == 'lstm'):
+          h, cache_h = lstm_forward(x, h0, Wx, Wh, b)
+        else:
+          raise NotImplementedError
+
         scores, cache_scores = temporal_affine_forward(h, W_vocab, b_vocab)
         loss, dscores = temporal_softmax_loss(scores, captions_out, mask)
 
         dh, dW_vocab, db_vocab = temporal_affine_backward(dscores, cache_scores)
-        dx, dh0, dWx, dWh, db = rnn_backward(dh, cache_h)
+        if(self.cell_type == 'rnn'):
+          dx, dh0, dWx, dWh, db = rnn_backward(dh, cache_h)
+        elif (self.cell_type == 'lstm'):
+          dx, dh0, dWx, dWh, db = lstm_backward(dh, cache_h)
+        else:
+          raise NotImplementedError
         dW_embed = word_embedding_backward(dx, cache_x)
         dfeatures, dW_proj, db_proj = affine_backward(dh0, cache_h0)
 
@@ -241,14 +252,18 @@ class CaptioningRNN(object):
         H = b.shape[0]
         captions = np.zeros((N, max_length), dtype = np.int)
 
-        # x = self._start * np.ones_like(N, D).dot(W_embed)
         x = W_embed[self._start * np.ones_like(N, dtype=np.int)]
         prev_h, _ = affine_forward(features, W_proj, b_proj)
+        prev_c = np.zeros_like(prev_h)
 
-        # captions_in = self._start * np.ones_like(N, D)
-        # prev_h, _ = word_embedding_forward(captions_in, W_embed)
         for i in range(max_length):
-          next_h, _ = rnn_step_forward(x, prev_h, Wx, Wh, b)
+          if (self.cell_type == 'rnn'):
+            next_h, _ = rnn_step_forward(x, prev_h, Wx, Wh, b)
+          elif (self.cell_type == 'lstm'):
+            next_h, next_c, _ = lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b)
+            prev_c = next_c
+          else:
+            raise NotImplementedError
           scores, _ = affine_forward(next_h, W_vocab, b_vocab)
           captions_step = scores.argmax(axis=1)
           x = W_embed[captions_step]
